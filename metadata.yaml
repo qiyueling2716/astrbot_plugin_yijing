@@ -1,0 +1,29 @@
+# 插件元数据
+name: astrbot_plugin_yijing
+display_name: 易经占卜
+author: 长歌&月凌
+version: 1.0.0
+desc: 易经塔罗占卜插件，支持快速占卜、卦象查询、六爻分析
+short_desc: 🌙 易经占卜 - 传承千年的智慧
+
+# 插件依赖的AstrBot版本
+astrbot_version: ">=4.16,<5"
+
+# 支持的平台
+support_platforms:
+  - aiocqhttp
+  - telegram
+  - discord
+  - qq_official
+
+# 插件主页
+homepage: https://github.com/yourname/astrbot_plugin_yijing
+
+# 标签
+tags:
+  - 占卜
+  - 易经
+  - 娱乐
+
+# 是否启用
+enabled: true

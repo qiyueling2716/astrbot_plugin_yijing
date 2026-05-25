@@ -1,1 +1,3 @@
-# astrbot_plugin_yijing
+# 易经
+调用长歌的占卜api服务实现赛博算卦的一个AstrBot插件
+支持llm_tool
