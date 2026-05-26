@@ -313,27 +313,6 @@ class YiJingPlugin(Star):
     
     # ==================== 传统命令 ====================
     
-    @command("yijing")
-    async def cmd_yijing(self, event: AstrMessageEvent):
-        """易经占卜主命令"""
-        yield event.plain_result(f"""
-📜 **易经占卜插件 v1.0.0**
-
-| 命令 | 说明 |
-|------|------|
-| `/yijing div [问题]` | 快速占卜（随机起卦） |
-| `/yijing time [问题]` | 以当前时间起卦 |
-| `/yijing coin [问题]` | 钱币起卦（六爻） |
-| `/yijing hexagram <id>` | 查看卦象详情（1-64） |
-| `/yijing random` | 随机获取一卦 |
-| `/yijing list [页码]` | 查看六十四卦列表 |
-
-🤖 **LLM函数工具**: ✅ 已启用
-💡 AI可自动调用占卜功能
-
-📚 示例：`/yijing div 今天运势如何`
-        """)
-    
     @command("yijing div")
     async def cmd_divination(self, event: AstrMessageEvent, question: str = None):
         """快速占卜（随机起卦）"""
@@ -361,6 +340,9 @@ class YiJingPlugin(Star):
 📊 **趋势**：{dong_bian.get('fortune_tendency', '')}
 
 ✨ {result.get('interpretation_hint', '')}
+
+---
+本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议
 """
             yield event.plain_result(message)
         else:
@@ -391,6 +373,9 @@ class YiJingPlugin(Star):
 📊 **趋势**：{dong_bian.get('fortune_tendency', '')}
 
 ✨ {result.get('interpretation_hint', '')}
+
+---
+本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议
 """
             yield event.plain_result(message)
         else:
@@ -421,6 +406,9 @@ class YiJingPlugin(Star):
 📊 **趋势**：{dong_bian.get('fortune_tendency', '')}
 
 ✨ {result.get('interpretation_hint', '')}
+
+---
+本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议
 """
             yield event.plain_result(message)
         else:
@@ -470,6 +458,7 @@ class YiJingPlugin(Star):
             if len(lines) > 3:
                 message += f"\n... (共{len(lines)}爻，使用 `/yijing hexagram {hid}` 查看完整)"
             
+            message += "\n\n---\n本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议"
             yield event.plain_result(message)
         else:
             yield event.plain_result(f"❌ 未找到ID为 {hid} 的卦象。")
@@ -489,6 +478,9 @@ class YiJingPlugin(Star):
 {data.get('judgment', '无')[:150]}
 
 💡 使用 `/yijing hexagram {random_id}` 查看完整卦象
+
+---
+本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议
 """
             yield event.plain_result(message)
         else:
@@ -526,6 +518,30 @@ class YiJingPlugin(Star):
             message += f"\n⏭️ 下一页: `/yijing list {page_num+1}`"
         
         yield event.plain_result(message)
+    
+    @command("yijing")
+    async def cmd_yijing(self, event: AstrMessageEvent):
+        """易经占卜主命令"""
+        yield event.plain_result(f"""
+📜 **易经占卜插件 v1.0.0**
+
+| 命令 | 说明 |
+|------|------|
+| `/yijing div [问题]` | 快速占卜（随机起卦） |
+| `/yijing time [问题]` | 以当前时间起卦 |
+| `/yijing coin [问题]` | 钱币起卦（六爻） |
+| `/yijing hexagram <id>` | 查看卦象详情（1-64） |
+| `/yijing random` | 随机获取一卦 |
+| `/yijing list [页码]` | 查看六十四卦列表 |
+
+🤖 **LLM函数工具**: ✅ 已启用
+💡 AI可自动调用占卜功能
+
+📚 示例：`/yijing div 今天运势如何`
+
+---
+本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议
+        """)
     
     @command("yijing help")
     async def cmd_help(self, event: AstrMessageEvent):
