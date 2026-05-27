@@ -2,7 +2,7 @@
 name: astrbot_plugin_yijing
 display_name: 易经占卜
 author: 长歌&月凌
-version: 1.0.0
+version: 1.0.1
 desc: 易经塔罗占卜插件，支持快速占卜、卦象查询、六爻分析
 short_desc: 🌙 易经占卜 - 传承千年的智慧
 
