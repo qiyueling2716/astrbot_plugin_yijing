@@ -186,7 +186,7 @@ class YiJingPlugin(Star):
                 }, ensure_ascii=False)
         except Exception as e:
             logger.error(f"占卜函数异常: {e}")
-            return json.dumps({"success": False, "error": str(e)},)}, ensure_ascii=False)
+            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
     
     @filter.llm_tool(name="yijing_get_hexagram")
     async def func_get_hexagram(self, event: AstrMessageEvent, hexagram_id: int) -> str:
@@ -311,12 +311,58 @@ class YiJingPlugin(Star):
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
     
-    # ==================== 指令组 ====================
     
-    @filter.command_group("yijing")
-    async def yijing_group(self, event: AstrMessageEvent):
-        """易经占卜主命令（指令组父命令）"""
-        yield event.plain_result(f"""
+    # ==================== 传统命令 ====================
+
+    @filter.command("yijing")
+    async def cmd_yijing(self, event: AstrMessageEvent):
+        """易经占卜主命令 - 手动分发子命令"""
+        message_str = event.message_str.strip()
+        parts = message_str.split()
+
+        # 移除唤醒前缀和主命令名，获取子命令和参数
+        # parts[0] 是 "/yijing" 或 "yijing"
+        if len(parts) == 1:
+            # 只有 /yijing，显示帮助
+            async for result in self._show_help(event):
+                yield result
+            return
+
+        sub_command = parts[1].lower()
+        args = parts[2:] if len(parts) > 2 else []
+
+        if sub_command == "help":
+            async for result in self._show_help(event):
+                yield result
+        elif sub_command == "div":
+            question = " ".join(args) if args else None
+            async for result in self._cmd_divination(event, question):
+                yield result
+        elif sub_command == "time":
+            question = " ".join(args) if args else None
+            async for result in self._cmd_time_divination(event, question):
+                yield result
+        elif sub_command == "coin":
+            question = " ".join(args) if args else None
+            async for result in self._cmd_coin_divination(event, question):
+                yield result
+        elif sub_command == "hexagram":
+            hexagram_id = args[0] if args else None
+            async for result in self._cmd_hexagram(event, hexagram_id):
+                yield result
+        elif sub_command == "random":
+            async for result in self._cmd_random_hexagram(event):
+                yield result
+        elif sub_command == "list":
+            page = args[0] if args else "1"
+            async for result in self._cmd_list_hexagrams(event, page):
+                yield result
+        else:
+            yield event.plain_result(f"❓ 未知子命令 `{sub_command}`。发送 `/yijing help` 查看可用命令。")
+
+    async def _show_help(self, event: AstrMessageEvent):
+        """显示帮助信息"""
+        yield event.plain_result("""
 📜 **易经占卜插件 v1.0.0**
 
 | 命令 | 说明 |
@@ -337,22 +383,21 @@ class YiJingPlugin(Star):
 ---
 本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议
         """)
-    
-    @yijing_group.command("div")
-    async def cmd_divination(self, event: AstrMessageEvent, question: str = None):
+
+    async def _cmd_divination(self, event: AstrMessageEvent, question: str = None):
         """快速占卜（随机起卦）"""
         question_text = question if question else "随机占卜"
-        
+
         yield event.plain_result(f"🔮 正在为您占卜「{question_text}」...")
-        
+
         result = await self._quick_divination(question_text, "random")
-        
+
         if result:
             original = result.get("original", {})
             changed = result.get("changed", {})
             liu_yao = result.get("liu_yao_analysis", {})
             dong_bian = liu_yao.get("dong_bian", {})
-            
+
             message = f"""🔮 **易经占卜结果**
 
 📝 **问题**：{question_text}
@@ -372,21 +417,20 @@ class YiJingPlugin(Star):
             yield event.plain_result(message)
         else:
             yield event.plain_result("❌ 占卜失败，请稍后再试。")
-    
-    @yijing_group.command("time")
-    async def cmd_time_divination(self, event: AstrMessageEvent, question: str = None):
+
+    async def _cmd_time_divination(self, event: AstrMessageEvent, question: str = None):
         """以当前时间起卦"""
         question_text = question if question else "运势占卜"
-        
+
         yield event.plain_result(f"⏰ 正在以当前时间起卦，为您占卜「{question_text}」...")
-        
+
         result = await self._quick_divination(question_text, "time")
-        
+
         if result:
             original = result.get("original", {})
             changed = result.get("changed", {})
             dong_bian = result.get("liu_yao_analysis", {}).get("dong_bian", {})
-            
+
             message = f"""🔮 **时间起卦结果**
 
 📝 **问题**：{question_text}
@@ -405,21 +449,20 @@ class YiJingPlugin(Star):
             yield event.plain_result(message)
         else:
             yield event.plain_result("❌ 占卜失败，请稍后再试。")
-    
-    @yijing_group.command("coin")
-    async def cmd_coin_divination(self, event: AstrMessageEvent, question: str = None):
+
+    async def _cmd_coin_divination(self, event: AstrMessageEvent, question: str = None):
         """钱币起卦（六爻）"""
         question_text = question if question else "六爻占卜"
-        
+
         yield event.plain_result(f"💰 正在模拟钱币起卦，为您占卜「{question_text}」...")
-        
+
         result = await self._quick_divination(question_text, "coin")
-        
+
         if result:
             original = result.get("original", {})
             changed = result.get("changed", {})
             dong_bian = result.get("liu_yao_analysis", {}).get("dong_bian", {})
-            
+
             message = f"""🔮 **钱币起卦（六爻）结果**
 
 📝 **问题**：{question_text}
@@ -438,14 +481,13 @@ class YiJingPlugin(Star):
             yield event.plain_result(message)
         else:
             yield event.plain_result("❌ 占卜失败，请稍后再试。")
-    
-    @yijing_group.command("hexagram")
-    async def cmd_hexagram(self, event: AstrMessageEvent, hexagram_id: str = None):
+
+    async def _cmd_hexagram(self, event: AstrMessageEvent, hexagram_id: str = None):
         """查看卦象详情"""
         if not hexagram_id:
             yield event.plain_result("请提供卦象ID，例如：`/yijing hexagram 1`\n可用 `/yijing list` 查看卦象列表")
             return
-        
+
         try:
             hid = int(hexagram_id)
             if hid < 1 or hid > 64:
@@ -454,15 +496,15 @@ class YiJingPlugin(Star):
         except ValueError:
             yield event.plain_result("请输入数字格式的卦象ID")
             return
-        
+
         data = await self._get_hexagram(hid)
-        
+
         if data:
             lines = data.get("lines", [])
             lines_text = ""
             for line in lines[:3]:
                 lines_text += f"  {line.get('position')}. {line.get('text', '')}\n"
-            
+
             message = f"""📖 **{data.get('name', '未知')}卦** ({data.get('chinese', '')})
 
 🔢 **卦序**：{data.get('id')}
@@ -482,18 +524,17 @@ class YiJingPlugin(Star):
 """
             if len(lines) > 3:
                 message += f"\n... (共{len(lines)}爻，使用 `/yijing hexagram {hid}` 查看完整)"
-            
+
             message += "\n\n---\n本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议"
             yield event.plain_result(message)
         else:
             yield event.plain_result(f"❌ 未找到ID为 {hid} 的卦象。")
-    
-    @yijing_group.command("random")
-    async def cmd_random_hexagram(self, event: AstrMessageEvent):
+
+    async def _cmd_random_hexagram(self, event: AstrMessageEvent):
         """随机获取一卦"""
         random_id = random.randint(1, 64)
         data = await self._get_hexagram(random_id)
-        
+
         if data:
             message = f"""🎲 **随机卦象**
 
@@ -510,48 +551,40 @@ class YiJingPlugin(Star):
             yield event.plain_result(message)
         else:
             yield event.plain_result("❌ 获取卦象失败")
-    
-    @yijing_group.command("list")
-    async def cmd_list_hexagrams(self, event: AstrMessageEvent, page: str = "1"):
+
+    async def _cmd_list_hexagrams(self, event: AstrMessageEvent, page: str = "1"):
         """查看六十四卦列表"""
         try:
             page_num = int(page)
         except ValueError:
             page_num = 1
-        
+
         items_per_page = 16
         total_items = 64
         total_pages = (total_items + items_per_page - 1) // items_per_page
-        
+
         if page_num < 1 or page_num > total_pages:
             yield event.plain_result(f"页数范围是 1-{total_pages}")
             return
-        
+
         start = (page_num - 1) * items_per_page + 1
         end = min(start + items_per_page - 1, total_items)
-        
+
         message = f"📚 **六十四卦列表** (第{page_num}/{total_pages}页)\n\n"
-        
+
         for i in range(start, end + 1):
             name = HEXAGRAM_NAMES.get(i, "未知")
             message += f"`{i:2d}`. {name}\n"
-        
+
         message += f"\n📖 使用 `/yijing hexagram <id>` 查看卦象详情"
         if page_num > 1:
             message += f"\n⏮️ 上一页: `/yijing list {page_num-1}`"
         if page_num < total_pages:
             message += f"\n⏭️ 下一页: `/yijing list {page_num+1}`"
-        
+
         yield event.plain_result(message)
-    
-    @yijing_group.command("help")
-    async def cmd_help(self, event: AstrMessageEvent):
-        """显示帮助信息"""
-        async for result in self.yijing_group(event):
-            yield result
-    
+
     async def terminate(self):
         """插件卸载时关闭会话"""
         if self.session and not self.session.closed:
             await self.session.close()
-
