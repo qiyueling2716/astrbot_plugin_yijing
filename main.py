@@ -186,7 +186,7 @@ class YiJingPlugin(Star):
                 }, ensure_ascii=False)
         except Exception as e:
             logger.error(f"占卜函数异常: {e}")
-            return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
+            return json.dumps({"success": False, "error": str(e)},)}, ensure_ascii=False)
     
     @filter.llm_tool(name="yijing_get_hexagram")
     async def func_get_hexagram(self, event: AstrMessageEvent, hexagram_id: int) -> str:
@@ -311,9 +311,34 @@ class YiJingPlugin(Star):
         except Exception as e:
             return json.dumps({"success": False, "error": str(e)}, ensure_ascii=False)
     
-    # ==================== 传统命令 ====================
+    # ==================== 指令组 ====================
     
-    @command("yijing div")
+    @filter.command_group("yijing")
+    async def yijing_group(self, event: AstrMessageEvent):
+        """易经占卜主命令（指令组父命令）"""
+        yield event.plain_result(f"""
+📜 **易经占卜插件 v1.0.0**
+
+| 命令 | 说明 |
+|------|------|
+| `/yijing div [问题]` | 快速占卜（随机起卦） |
+| `/yijing time [问题]` | 以当前时间起卦 |
+| `/yijing coin [问题]` | 钱币起卦（六爻） |
+| `/yijing hexagram <id>` | 查看卦象详情（1-64） |
+| `/yijing random` | 随机获取一卦 |
+| `/yijing list [页码]` | 查看六十四卦列表 |
+| `/yijing help` | 显示帮助信息 |
+
+🤖 **LLM函数工具**: ✅ 已启用
+💡 AI可自动调用占卜功能
+
+📚 示例：`/yijing div 今天运势如何`
+
+---
+本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议
+        """)
+    
+    @yijing_group.command("div")
     async def cmd_divination(self, event: AstrMessageEvent, question: str = None):
         """快速占卜（随机起卦）"""
         question_text = question if question else "随机占卜"
@@ -348,7 +373,7 @@ class YiJingPlugin(Star):
         else:
             yield event.plain_result("❌ 占卜失败，请稍后再试。")
     
-    @command("yijing time")
+    @yijing_group.command("time")
     async def cmd_time_divination(self, event: AstrMessageEvent, question: str = None):
         """以当前时间起卦"""
         question_text = question if question else "运势占卜"
@@ -381,7 +406,7 @@ class YiJingPlugin(Star):
         else:
             yield event.plain_result("❌ 占卜失败，请稍后再试。")
     
-    @command("yijing coin")
+    @yijing_group.command("coin")
     async def cmd_coin_divination(self, event: AstrMessageEvent, question: str = None):
         """钱币起卦（六爻）"""
         question_text = question if question else "六爻占卜"
@@ -414,7 +439,7 @@ class YiJingPlugin(Star):
         else:
             yield event.plain_result("❌ 占卜失败，请稍后再试。")
     
-    @command("yijing hexagram")
+    @yijing_group.command("hexagram")
     async def cmd_hexagram(self, event: AstrMessageEvent, hexagram_id: str = None):
         """查看卦象详情"""
         if not hexagram_id:
@@ -463,7 +488,7 @@ class YiJingPlugin(Star):
         else:
             yield event.plain_result(f"❌ 未找到ID为 {hid} 的卦象。")
     
-    @command("yijing random")
+    @yijing_group.command("random")
     async def cmd_random_hexagram(self, event: AstrMessageEvent):
         """随机获取一卦"""
         random_id = random.randint(1, 64)
@@ -486,7 +511,7 @@ class YiJingPlugin(Star):
         else:
             yield event.plain_result("❌ 获取卦象失败")
     
-    @command("yijing list")
+    @yijing_group.command("list")
     async def cmd_list_hexagrams(self, event: AstrMessageEvent, page: str = "1"):
         """查看六十四卦列表"""
         try:
@@ -519,37 +544,14 @@ class YiJingPlugin(Star):
         
         yield event.plain_result(message)
     
-    @command("yijing")
-    async def cmd_yijing(self, event: AstrMessageEvent):
-        """易经占卜主命令"""
-        yield event.plain_result(f"""
-📜 **易经占卜插件 v1.0.0**
-
-| 命令 | 说明 |
-|------|------|
-| `/yijing div [问题]` | 快速占卜（随机起卦） |
-| `/yijing time [问题]` | 以当前时间起卦 |
-| `/yijing coin [问题]` | 钱币起卦（六爻） |
-| `/yijing hexagram <id>` | 查看卦象详情（1-64） |
-| `/yijing random` | 随机获取一卦 |
-| `/yijing list [页码]` | 查看六十四卦列表 |
-
-🤖 **LLM函数工具**: ✅ 已启用
-💡 AI可自动调用占卜功能
-
-📚 示例：`/yijing div 今天运势如何`
-
----
-本服务提供的是文化与娱乐导向的解读，不应替代医疗，法律，或财务等方面的建议
-        """)
-    
-    @command("yijing help")
+    @yijing_group.command("help")
     async def cmd_help(self, event: AstrMessageEvent):
         """显示帮助信息"""
-        async for result in self.cmd_yijing(event):
+        async for result in self.yijing_group(event):
             yield result
     
     async def terminate(self):
         """插件卸载时关闭会话"""
         if self.session and not self.session.closed:
             await self.session.close()
+
